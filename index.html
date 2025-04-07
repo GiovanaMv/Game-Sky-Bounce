@@ -97,11 +97,17 @@
     let motionX = 0;
     let score = 0;
     let backgroundHue = 200;
+
+    let movingBars = []; // 🔄 Barras móveis
+    let turbos = []; // 🚀 Turbos foguinho
+    let nextBarHeight = 1000; // quando a próxima barra deve aparecer
   
     // Cria plataformas e estrelas
     function createPlatforms() {
       platforms = [];
       stars = [];
+      movingBars = [];
+      turbos = [];
       const spacing = isMobile ? 70 : 50;
   
       // Plataforma inicial (garantida)
@@ -122,7 +128,7 @@
         const px = platformPadding + Math.random() * (canvas.width - 100 - platformPadding * 2);
 
         // 📏 Define a distância entre plataformas com base no dispositivo
-        const spacing = isMobile ? 70 : 50; // 70 para mobile (mais espaçado), 45 para desktop (mais próximo)
+        const spacing = isMobile ? 70 : 40; // 70 para mobile (mais espaçado), 45 para desktop (mais próximo)
         const py = canvas.height - i * spacing;
 
         const isFake = Math.random() < 0.3;
@@ -294,7 +300,10 @@
           p.y += diff;
           if (p.y > canvas.height) {
             p.y = 0;
-            p.x = Math.random() * canvas.width;
+
+            const platformPadding = isMobile ? 0 : 250;
+            p.x = platformPadding + Math.random() * (canvas.width - 100 - platformPadding * 2);
+            
             p.type = Math.random() < 0.3 ? "fake" : "normal";
             p.color = p.type === "fake" ? "#ffffff" : `hsl(${Math.random() * 360}, 100%, 50%)`;
             p.opacity = 1;
