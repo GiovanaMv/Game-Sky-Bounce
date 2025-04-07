@@ -118,7 +118,11 @@
       // Geração de plataformas aleatórias
       for (let i = 1; i < 15; i++) {
         const px = Math.random() * (canvas.width - 100);
+        
+        // 📏 Define a distância entre plataformas com base no dispositivo
+        const spacing = isMobile ? 70 : 45; // 70 para mobile (mais espaçado), 45 para desktop (mais próximo)
         const py = canvas.height - i * spacing;
+
         const isFake = Math.random() < 0.3;
   
         platforms.push({
@@ -231,9 +235,12 @@
       player.dy += 0.5; // gravidade
       player.y += player.dy;
   
-      // Limita o movimento lateral dentro da tela
-      if (player.x < 0) player.x = 0;
-      if (player.x > canvas.width) player.x = canvas.width;
+      // 🔁 Wrap horizontal da bolinha
+      if (player.x < -player.radius) {
+        player.x = canvas.width + player.radius;
+      } else if (player.x > canvas.width + player.radius) {
+        player.x = -player.radius;
+      }
   
       // Verifica colisões com plataformas
       platforms.forEach(p => {
@@ -335,7 +342,12 @@
       player.x = canvas.width / 2;
       player.y = canvas.height - 100;
       player.dy = 0;
+      player.dx = 0;
       player.maxHeight = 0;
+
+      // ✅ Limpa o estado das teclas pressionadas
+      keys = {};
+
       createPlatforms();
     }
   
