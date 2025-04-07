@@ -365,7 +365,7 @@
     if (window.DeviceOrientationEvent) {
       window.addEventListener("deviceorientation", e => {
       const gamma = Math.max(-45, Math.min(45, e.gamma || 0));
-      motionX = -gamma / 45; // Inverte o valor pra o movimento ficar intuitivo
+      motionX = gamma / 45; // Inverte o valor pra o movimento ficar intuitivo
     });
     }
   </script>
