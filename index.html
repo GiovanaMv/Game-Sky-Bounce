@@ -77,10 +77,10 @@
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
+  
     let isMobile = /Mobi|Android/i.test(navigator.userAgent);
     let gameStarted = false;
-
+  
     const player = {
       x: canvas.width / 2,
       y: canvas.height - 100,
@@ -88,38 +88,50 @@
       color: "#ff00ff",
       dy: 0,
       dx: 0,
-      grounded: false,
-      maxHeight: 0 // pra contar a maior altura
+      maxHeight: 0
     };
-
+  
     let platforms = [];
     let stars = [];
     let keys = {};
     let motionX = 0;
     let score = 0;
     let backgroundHue = 200;
-
+  
+    // Cria plataformas e estrelas
     function createPlatforms() {
       platforms = [];
-      // plataforma de base fixa no chão
+      stars = [];
+      const spacing = isMobile ? 70 : 50;
+  
+      // Plataforma inicial (garantida)
       platforms.push({
         x: player.x - 50,
         y: canvas.height - 70,
         width: 100,
         height: 10,
-        color: "#ffffff22"
+        color: "#ffffff22",
+        type: "normal",
+        opacity: 1
       });
+  
+      // Geração de plataformas aleatórias
       for (let i = 1; i < 15; i++) {
         const px = Math.random() * (canvas.width - 100);
-        const py = canvas.height - i * 70; // mais próximas
+        const py = canvas.height - i * spacing;
+        const isFake = Math.random() < 0.3;
+  
         platforms.push({
           x: px,
           y: py,
           width: 100,
           height: 10,
-          color: `hsl(${Math.random() * 360}, 100%, 50%)`
+          color: isFake ? "#ffffff" : `hsl(${Math.random() * 360}, 100%, 50%)`,
+          type: isFake ? "fake" : "normal",
+          used: false,
+          opacity: 1
         });
-        // cria estrela (moeda)
+  
         stars.push({
           x: px + 40,
           y: py - 20,
@@ -127,7 +139,8 @@
         });
       }
     }
-
+  
+    // Fundo psicodélico animado
     function drawPsychedelicBG() {
       const grd = ctx.createRadialGradient(
         canvas.width / 2,
@@ -143,7 +156,8 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       backgroundHue = (backgroundHue + 0.5) % 360;
     }
-
+  
+    // Estrela dourada de 10 pontas
     function drawStar(x, y) {
       const spikes = 10;
       const outerRadius = 10;
@@ -167,13 +181,15 @@
       ctx.fillStyle = "gold";
       ctx.fill();
     }
-
+  
+    // Desenha todas as estrelas
     function drawStars() {
       stars.forEach(s => {
         if (!s.collected) drawStar(s.x, s.y);
       });
     }
-
+  
+    // Desenha o jogador
     function drawPlayer() {
       ctx.beginPath();
       ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
@@ -184,69 +200,101 @@
       ctx.closePath();
       ctx.shadowBlur = 0;
     }
-
+  
+    // Desenha as plataformas (normais e falsas)
     function drawPlatforms() {
       platforms.forEach(p => {
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.width, p.height);
+        ctx.globalAlpha = p.opacity;
+        if (p.type === "fake") {
+          ctx.setLineDash([10, 5]);
+          ctx.strokeStyle = p.color;
+          ctx.strokeRect(p.x, p.y, p.width, p.height);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.width, p.height);
+        }
+        ctx.globalAlpha = 1;
       });
     }
-
+  
+    // Atualiza posição e colisões do jogador
     function updatePlayer() {
+      // Movimento lateral
       if (!isMobile) {
-        if (keys["ArrowLeft"]) player.dx = -5;
-        else if (keys["ArrowRight"]) player.dx = 5;
-        else player.dx = 0;
+        player.dx = keys["ArrowLeft"] ? -5 : keys["ArrowRight"] ? 5 : 0;
       } else {
         player.dx = motionX * 5;
       }
-
+  
       player.x += player.dx;
       player.dy += 0.5; // gravidade
       player.y += player.dy;
-
+  
+      // Limita o movimento lateral dentro da tela
       if (player.x < 0) player.x = 0;
       if (player.x > canvas.width) player.x = canvas.width;
-
+  
+      // Verifica colisões com plataformas
       platforms.forEach(p => {
-        if (
-          player.x > p.x &&
-          player.x < p.x + p.width &&
-          player.y + player.radius > p.y &&
-          player.y + player.radius < p.y + p.height &&
-          player.dy > 0
-        ) {
-          player.dy = -14; // ← MAIS ALTO
-          player.y = p.y - player.radius;
+        const collided = (
+          player.x + player.radius > p.x &&
+          player.x - player.radius < p.x + p.width &&
+          player.y + player.radius >= p.y &&
+          player.y + player.radius <= p.y + p.height &&
+          player.dy > 0 // só colide se estiver caindo
+        );
+  
+        if (collided) {
+          if (p.type === "fake" && !p.used) {
+            p.used = true;
+            player.dy = -14; // pulo
+            p.opacity = 0; // desaparece instantaneamente
+            p.y = canvas.height + 100; // joga fora da tela
+          } else if (p.type === "normal") {
+            player.dy = -14; // sempre pula nas normais
+          }
+  
+          // Muda a cor da bolinha conforme pontuação
           score++;
           player.color = `hsl(${(score * 30) % 360}, 100%, 50%)`;
         }
       });
-
+  
+      // Coleta de estrelas
       stars.forEach(s => {
         if (!s.collected && Math.abs(player.x - s.x) < 20 && Math.abs(player.y - s.y) < 20) {
           s.collected = true;
           score += 5;
         }
       });
-
+  
+      // Game over: caiu da tela
       if (player.y > canvas.height) {
         alert("Game Over! Pontuação: " + score);
         resetGame();
       }
-
+  
+      // Quando o player sobe além da metade da tela, move o cenário para baixo
       if (player.y < canvas.height / 2) {
         const diff = canvas.height / 2 - player.y;
         player.y = canvas.height / 2;
         player.maxHeight += diff;
+  
+        // Move plataformas
         platforms.forEach(p => {
           p.y += diff;
           if (p.y > canvas.height) {
             p.y = 0;
             p.x = Math.random() * canvas.width;
-            p.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            p.type = Math.random() < 0.3 ? "fake" : "normal";
+            p.color = p.type === "fake" ? "#ffffff" : `hsl(${Math.random() * 360}, 100%, 50%)`;
+            p.opacity = 1;
+            p.used = false;
           }
         });
+  
+        // Move estrelas
         stars.forEach(s => {
           s.y += diff;
           if (s.y > canvas.height) {
@@ -256,10 +304,12 @@
           }
         });
       }
-
+  
+      // Atualiza HUD
       document.getElementById("hud").innerText = `Altura: ${Math.floor(player.maxHeight)}`;
     }
-
+  
+    // Loop principal do jogo
     function gameLoop() {
       if (!gameStarted) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -270,18 +320,16 @@
       drawPlayer();
       requestAnimationFrame(gameLoop);
     }
-
+  
+    // Inicia o jogo
     function startGame() {
       document.getElementById("startScreen").style.display = "none";
       gameStarted = true;
       createPlatforms();
       gameLoop();
     }
-
-    function openStore() {
-      alert("Loja ainda em construção ✨");
-    }
-
+  
+    // Reinicia o jogo após morrer
     function resetGame() {
       score = 0;
       player.x = canvas.width / 2;
@@ -290,15 +338,23 @@
       player.maxHeight = 0;
       createPlatforms();
     }
-
+  
+    // Loja ainda será implementada
+    function openStore() {
+      alert("Loja ainda em construção ✨");
+    }
+  
+    // Teclado para desktop
     document.addEventListener("keydown", e => keys[e.key] = true);
     document.addEventListener("keyup", e => keys[e.key] = false);
-
+  
+    // Movimento para celular
     if (window.DeviceOrientationEvent) {
       window.addEventListener("deviceorientation", e => {
-        motionX = e.gamma / 45; // normaliza para -1 a 1
+        motionX = e.gamma / 45;
       });
     }
   </script>
+  
 </body>
 </html>
