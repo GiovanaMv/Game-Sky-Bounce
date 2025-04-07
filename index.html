@@ -117,10 +117,15 @@
   
       // Geração de plataformas aleatórias
       for (let i = 1; i < 15; i++) {
-        const px = Math.random() * (canvas.width - 100);
+
+
+        const platformPadding = isMobile ? 0 : 250; // 📦 margem lateral no desktop
+        const px = platformPadding + Math.random() * (canvas.width - 100 - platformPadding * 2);
+
         
+
         // 📏 Define a distância entre plataformas com base no dispositivo
-        const spacing = isMobile ? 70 : 45; // 70 para mobile (mais espaçado), 45 para desktop (mais próximo)
+        const spacing = isMobile ? 70 : 50; // 70 para mobile (mais espaçado), 45 para desktop (mais próximo)
         const py = canvas.height - i * spacing;
 
         const isFake = Math.random() < 0.3;
