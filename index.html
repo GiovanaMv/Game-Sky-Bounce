@@ -240,6 +240,8 @@
   
       player.x += player.dx;
       player.dy += 0.5; // gravidade
+      const prevY = player.y;
+
       player.y += player.dy;
   
       // 🔁 Wrap horizontal da bolinha
@@ -251,13 +253,13 @@
   
       // Verifica colisões com plataformas
       platforms.forEach(p => {
-        const collided = (
-          player.x + player.radius > p.x &&
-          player.x - player.radius < p.x + p.width &&
-          player.y + player.radius >= p.y &&
-          player.y + player.radius <= p.y + p.height &&
-          player.dy > 0 // só colide se estiver caindo
-        );
+        const prevY = player.y - player.dy; // calcula onde estava antes
+
+        const wasAbove = prevY + player.radius <= p.y;
+        const isBelow = player.y + player.radius >= p.y;
+        const horizontal = player.x + player.radius > p.x && player.x - player.radius < p.x + p.width;
+
+        const collided = wasAbove && isBelow && horizontal && player.dy > 0;
   
         if (collided) {
           if (p.type === "fake" && !p.used) {
